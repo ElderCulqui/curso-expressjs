@@ -3,9 +3,9 @@ const prisma = new PrismaClient();
 
 async function main() {
   // const demoUsers = [
-  //   { name: 'Juan PÃ©rez', email: 'juan.perez@example.com' },
-  //   { name: 'MarÃ­a LÃ³pez', email: 'maria.lopez@example.com' },
-  //   { name: 'Carlos GarcÃ­a', email: 'carlos.garcia@example.com' }
+  //   { name: 'Juan Perez', email: 'juan.perez@example.com', password: 'secret123', role: 'USER' },
+  //   { name: 'María López', email: 'maria.lopez@example.com', password: 'secret123', role: 'USER' },
+  //   { name: 'Carlos García', email: 'carlos.garcia@example.com', password: 'secret123', role: 'USER' }
   // ];
 
   // for (const user of demoUsers) {
@@ -14,7 +14,7 @@ async function main() {
   //   });
   // }
 
-  // console.log('Usuarios de demostraciÃ³n creados con Ã©xito');
+  // console.log('Usuarios de demostración creados con éxito');
 
   await prisma.user.deleteMany();
 }

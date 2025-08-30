@@ -1,12 +1,15 @@
 require('dotenv').config();
 const { error } = require('console');
 const express = require('express');
-const { PrismaClient } = require('./generated/prisma')
+const { PrismaClient } = require('./generated/prisma');
 const prisma = new PrismaClient();
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
-const { validateUser } = require('./utils/validation');
-const LoggerMiddleware = require('./middlewares/logger');
-const errorHandler = require('./middlewares/errorHandler');
+const { validateUser } = require('./src/utils/validation');
+const LoggerMiddleware = require('./src/middlewares/logger');
+const errorHandler = require('./src/middlewares/errorHandler');
+const authenticateToken = require('./src/middlewares/auth');
 const fs = require('fs');
 const path = require('path');
 const usersFilePath = path.join(__dirname, 'users.json');
@@ -27,11 +30,6 @@ app.get('/', (req, res) => {
         <p>¡Gracias por unirte a nosotros en este viaje de aprendizaje!</p>
     `);
 });
-
-// app.get('/users/:id', (req, res) => {
-//     const userId = req.params.id;
-//     res.send(`Mostrar información del usuario con ID: ${userId}`);
-// })
 
 app.get('/search', (req, res) => {
     const terms = req.query.termino || 'No especificado';
@@ -184,6 +182,50 @@ app.post('/db-users', async (req, res) => {
     }
 
 })
+
+app.get('/protected-route', authenticateToken, (req, res) => {
+    res.send('Esta es una ruta protegida.');
+})
+
+app.post('/register', async (req, res) => {
+    const { email, password, name } = req.body;
+
+    if (!email || !password || !name) {
+        return res.status(400).json({error: 'Faltan datos requeridos.'});
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await prisma.user.create({
+        data: {
+            email,
+            name,
+            password: hashedPassword,
+            role: 'USER'
+        }
+    });
+
+    return res.status(201).json({ message: 'User Registered Successfully'})
+})
+
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+    const user = await prisma.user.findUnique({ where: { email } })
+    
+    if (!user) return res.status(400).json({ message: 'Invalid email or password' });
+
+    const validPassword = await bcrypt.compare(password, user.password);
+
+    if(!validPassword) return res.status(400).json({ message: 'Invalid email or password' });
+
+    const token = jwt.sign(
+        { id: user.id, role: user.role }, 
+        process.env.JWT_SECRET, 
+        { expiresIn: '4h' }
+    )
+
+    res.json({ token });
+});
 
 app.listen(PORT, () => {
     console.log(`Servidor: http://localhost:${PORT}`);
